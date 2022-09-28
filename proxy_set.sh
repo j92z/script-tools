@@ -1,46 +1,39 @@
-#!/bin/sh
-hostip=$(cat /etc/resolv.conf | grep nameserver | awk '{ print $2 }')
-wslip=$(hostname -I | awk '{print $1}')
-port=7890
+#!/bin/bash
 
-PROXY_HTTP="http://${hostip}:${port}"
+host_ip=$(cat /etc/resolv.conf | grep -oP '(?<=nameserver\ ).*')
+proxy_url="http://$host_ip:7890"
 
-set_proxy(){
-    export http_proxy="${PROXY_HTTP}"
-    export HTTP_PROXY="${PROXY_HTTP}"
-
-    export https_proxy="${PROXY_HTTP}"
-    export HTTPS_proxy="${PROXY_HTTP}"
-    export no_proxy="127.0.0.1, localhost"
-    echo "set proxy success: ${http_proxy}"
+function proxy() {
+    export http_proxy=$proxy_url
+    export https_proxy=$proxy_url
+    export all_proxy=$proxy_url
+    curl cip.cc
 }
 
-unset_proxy(){
-    echo "unset ${http_proxy}"
+function unproxy() {
     unset http_proxy
-    unset HTTP_PROXY
-    unset https_proxy
-    unset HTTPS_PROXY
-    echo "unset proxy success"
+	unset https_proxy
+	unset all_proxy
+	curl cip.cc
 }
 
-test_setting(){
+function test_proxy(){
     echo "Host ip:" ${hostip}
-    echo "WSL ip:" ${wslip}
-    echo "Current proxy:" $https_proxy
+    echo "Current proxy:" $proxy_url
+    curl cip.cc
 }
 
 if [ "$1" = "set" ]
 then
-    set_proxy
+    proxy
 
 elif [ "$1" = "unset" ]
 then
-    unset_proxy
+    unproxy
 
 elif [ "$1" = "test" ]
 then
-    test_setting
+    test_proxy
 else
     echo "Unsupported arguments."
 fi
